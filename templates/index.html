@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Handwritten Katakana Recognition</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            var canvas = document.getElementById("canvas");
+            var ctx = canvas.getContext("2d");
+            var isDrawing = false;
+            var lineWidthInput = document.getElementById("line-width");
+
+            // マウスの移動イベント
+            canvas.addEventListener("mousemove", function(e) {
+                if (!isDrawing) return;
+                ctx.lineWidth = lineWidthInput.value;
+                ctx.lineCap = "round";
+                ctx.strokeStyle = "black";
+                ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+                ctx.stroke();
+            });
+
+            // マウスのクリックイベント
+            canvas.addEventListener("mousedown", function(e) {
+                isDrawing = true;
+                ctx.beginPath();
+                ctx.moveTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+            });
+
+            // マウスの離れたイベント
+            canvas.addEventListener("mouseup", function() {
+                isDrawing = false;
+            });
+
+            // リセットボタンのクリックイベント
+            $("#reset-button").click(function() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                $("#result").text("");  // 結果表示をクリア
+                $.ajax({
+                    url: "/reset",
+                    type: "POST",
+                    contentType: "application/json",
+                    success: function(response) {
+                        console.log("Reset successful");
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error:", error);
+                    }
+                });
+            });
+
+            // 認識ボタンのクリックイベント
+            $("#recognize-button").click(function() {
+                var image = canvas.toDataURL("image/png");
+                $.ajax({
+                    url: "/recognize",
+                    type: "POST",
+                    data: JSON.stringify({ image: image }),
+                    contentType: "application/json",
+                    success: function(response) {
+                        $("#result").text("Predicted class: " + response.predicted_class);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error:", error);
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <canvas id="canvas" width="400" height="400" style="border: 1px solid black;"></canvas>
+    <label for="line-width">Line Width: </label>
+    <input type="range" id="line-width" min="1" max="100" value="5">
+    <button id="reset-button">Reset</button>
+    <button id="recognize-button">Recognize</button>
+    <div id="result"></div>
+</body>
+</html>
